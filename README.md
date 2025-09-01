@@ -2,6 +2,9 @@
 
 A Node.js CLI tool for compressing images to a target size (100KB) while maintaining quality. CATE processes WebP, PNG, and TIFF images, automatically skipping JPG/JPEG files.
 
+[![GitHub](https://img.shields.io/github/license/henrytsui/cate)](https://github.com/henrytsui/cate/blob/master/LICENSE)
+[![GitHub stars](https://img.shields.io/github/stars/henrytsui/cate)](https://github.com/henrytsui/cate/stargazers)
+
 ## Features
 
 - 🎯 Compresses images to a target size of 100KB
@@ -20,7 +23,7 @@ A Node.js CLI tool for compressing images to a target size (100KB) while maintai
 
 1. Clone this repository:
    ```bash
-   git clone https://github.com/yourusername/cate.git
+   git clone https://github.com/henrytsui/cate.git
    cd cate
    ```
 
