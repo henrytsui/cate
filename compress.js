@@ -8,6 +8,10 @@ const TARGET_SIZE = 100 * 1024;
 // Default maximum dimensions (width or height) - set to 0 to disable resizing
 let MAX_DIMENSION = 1920;
 
+// Default input and output directories
+const INPUT_DIR = "./input";
+const OUTPUT_DIR = "./output";
+
 // Parse command line arguments for width, height, and target format
 const args = process.argv.slice(2);
 let targetWidth = null;
@@ -241,7 +245,9 @@ async function compressWithRatio(filePath, originalSize) {
     let newFilePath = filePath;
     if (targetFormat) {
       const ext = path.extname(filePath);
-      newFilePath = filePath.slice(0, -ext.length) + '.' + targetFormat;
+      const baseName = path.basename(filePath, ext);
+      const dirName = path.dirname(filePath);
+      newFilePath = path.join(dirName, baseName + '.' + targetFormat);
     }
 
     // Write the compressed image to the new file path
@@ -272,25 +278,34 @@ function formatSize(bytes) {
 async function compressImages() {
   try {
     console.log("🖼️  Image Compressor Tool");
-    console.log("📁 Scanning current directory for supported image files (webp, png, tiff)...");
+    console.log(`📁 Scanning ${INPUT_DIR} directory for supported image files (webp, png, tiff)...`);
+
+    // Ensure output directory exists
+    if (!fs.existsSync(OUTPUT_DIR)) {
+      fs.mkdirSync(OUTPUT_DIR, { recursive: true });
+      console.log(`📂 Created output directory: ${OUTPUT_DIR}`);
+    }
 
     // Show resize info
     if (targetWidth || targetHeight) {
       if (targetWidth && targetHeight) {
-        console.log(`📏 Resize enabled: Images will be resized to exactly ${targetWidth}x${targetHeight}px\n`);
+        console.log(`📏 Resize enabled: Images will be resized to exactly ${targetWidth}x${targetHeight}px
+`);
       } else if (targetWidth) {
-        console.log(`📏 Resize enabled: Images will be scaled to width ${targetWidth}px (height adjusted to maintain aspect ratio)\n`);
+        console.log(`📏 Resize enabled: Images will be scaled to width ${targetWidth}px (height adjusted to maintain aspect ratio)
+`);
       } else if (targetHeight) {
-        console.log(`📏 Resize enabled: Images will be scaled to height ${targetHeight}px (width adjusted to maintain aspect ratio)\n`);
+        console.log(`📏 Resize enabled: Images will be scaled to height ${targetHeight}px (width adjusted to maintain aspect ratio)
+`);
       }
     } else if (MAX_DIMENSION > 0) {
-      console.log(`📏 Resize enabled: Images will be scaled to max ${MAX_DIMENSION}px on the longest side\n`);
+      console.log(`📏 Resize enabled: Images will be scaled to max ${MAX_DIMENSION}px on the longest side`);
     } else {
-      console.log("📏 Resize disabled: Images will maintain their original dimensions\n");
+      console.log("📏 Resize disabled: Images will maintain their original dimensions");
     }
 
-    // Read current directory
-    const files = fs.readdirSync(".");
+    // Read input directory
+    const files = fs.readdirSync(INPUT_DIR);
 
     // Filter image files (excluding jpg/jpeg as requested)
     const imageFiles = files.filter((file) => {
@@ -300,7 +315,7 @@ async function compressImages() {
     });
 
     if (imageFiles.length === 0) {
-      console.log("❌ No supported image files found in current directory");
+      console.log(`❌ No supported image files found in ${INPUT_DIR} directory`);
       return;
     }
 
@@ -310,7 +325,10 @@ async function compressImages() {
     let skippedCount = 0;
 
     for (const file of imageFiles) {
-      const originalSize = getFileSize(file);
+      const inputFilePath = path.join(INPUT_DIR, file);
+      const outputFilePath = path.join(OUTPUT_DIR, file);
+      
+      const originalSize = getFileSize(inputFilePath);
 
       if (originalSize === 0) {
         console.log(`❌ Skipping ${file} - could not read file size`);
@@ -334,15 +352,20 @@ async function compressImages() {
 
       console.log(`🔄 Processing ${file} (${formatSize(originalSize)})...`);
 
-      const newSize = await compressWithRatio(file, originalSize);
+      // Copy file to output directory before processing
+      fs.copyFileSync(inputFilePath, outputFilePath);
+      
+      const newSize = await compressWithRatio(outputFilePath, originalSize);
 
       if (newSize < originalSize) {
         const savedSize = originalSize - newSize;
         const savedPercent = ((savedSize / originalSize) * 100).toFixed(1);
-        console.log(`✅ Compressed to ${formatSize(newSize)} (saved ${formatSize(savedSize)}, ${savedPercent}%)\n`);
+        console.log(`✅ Compressed to ${formatSize(newSize)} (saved ${formatSize(savedSize)}, ${savedPercent}%)
+`);
         processedCount++;
       } else {
-        console.log(`❌ Failed to compress ${file}\n`);
+        console.log(`❌ Failed to compress ${file}
+`);
       }
     }
 
